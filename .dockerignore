@@ -1,0 +1,15 @@
+.git
+.tanstack
+.vinxi
+.nitro
+dist
+node_modules
+npm-debug.log*
+*.log
+.env
+.env.*
+Dockerfile
+.dockerignore
+AGENTS.md
+inspect-*.mjs
+flatten-plugins.mjs
