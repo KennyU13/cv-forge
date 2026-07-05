@@ -10,8 +10,6 @@
     "postinstall": "node scripts/patch-tanstack-start-router-hmr.mjs",
     "preview": "vite preview",
     "start": "vite preview --host 0.0.0.0 --port 4173",
-    "docker:build": "docker build -t cv-flow:local .",
-    "docker:run:free": "node scripts/docker-run-free-port.mjs",
     "lint": "eslint .",
     "format": "prettier --write ."
   },

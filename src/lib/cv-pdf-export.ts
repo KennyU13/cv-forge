@@ -229,7 +229,9 @@ function renderCV({
       data.certifications
         .filter((certification) => certification.name)
         .map((certification) =>
-          [certification.name, certification.issuer, certification.date].filter(Boolean).join(" - "),
+          [certification.name, certification.issuer, certification.date]
+            .filter(Boolean)
+            .join(" - "),
         )
         .join("\n"),
       { size: 8.6, color: theme.text, lineHeight: 10.8 },

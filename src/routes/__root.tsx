@@ -17,7 +17,11 @@ import { ThemeProvider, themeBootScript } from "@/components/theme-provider";
 
 function getDisplayErrorMessage(error: unknown) {
   const message =
-    error instanceof Error ? error.message : typeof error === "string" ? error : String(error ?? "");
+    error instanceof Error
+      ? error.message
+      : typeof error === "string"
+        ? error
+        : String(error ?? "");
 
   if (/failed to fetch|networkerror|load failed|fetch/i.test(message)) {
     return "Connexion au serveur impossible. Vérifiez votre réseau et la configuration Supabase.";
@@ -69,7 +73,9 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
         <p className="mt-2 text-sm text-muted-foreground">{displayMessage}</p>
         {import.meta.env.DEV && error.message && (
           <details className="mt-4 rounded-lg border bg-background/70 p-3 text-left text-xs text-muted-foreground">
-            <summary className="cursor-pointer font-medium text-foreground">Détail technique</summary>
+            <summary className="cursor-pointer font-medium text-foreground">
+              Détail technique
+            </summary>
             <pre className="mt-2 whitespace-pre-wrap break-words">{error.message}</pre>
           </details>
         )}
