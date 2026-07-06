@@ -135,9 +135,7 @@ function Hero() {
           <h1 className="font-display text-3xl font-bold leading-[1.08] text-foreground sm:text-5xl lg:text-6xl">
             Le CV qui passe
             <br />
-            <span className="bg-gradient-primary bg-clip-text text-transparent">
-              les filtres ATS.
-            </span>
+            <span className="text-primary">les filtres ATS.</span>
           </h1>
           <p className="mt-5 max-w-lg text-base text-muted-foreground sm:mt-6 sm:text-lg">
             Créez un CV professionnel optimisé pour les robots de recrutement. Templates
