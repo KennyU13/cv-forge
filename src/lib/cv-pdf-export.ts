@@ -59,6 +59,44 @@ export function exportCVToPdf({
   doc.save(`${safeFileName(title || data.personal.fullName || "cv")}.pdf`);
 }
 
+export function exportCoverLetterToPdf({ data, title }: { data: CVData; title: string }) {
+  const doc = new jsPDF({ unit: "pt", format: "a4", compress: true });
+  const p = data.personal;
+  const letter = data.coverLetter;
+  const body = normalizeText(letter.body);
+  const lines = doc.splitTextToSize(body || "Votre lettre de motivation est vide.", CONTENT_WIDTH);
+  let y = MARGIN;
+
+  doc.setFont("helvetica", "bold").setFontSize(18).setTextColor(15, 23, 42);
+  doc.text(p.fullName || title || "Lettre de motivation", MARGIN, y);
+  y += 20;
+
+  doc.setFont("helvetica", "normal").setFontSize(9).setTextColor(71, 85, 105);
+  const contact = [p.email, p.phone, p.location, p.linkedin].filter(Boolean).join("  |  ");
+  if (contact) {
+    doc.text(doc.splitTextToSize(contact, CONTENT_WIDTH), MARGIN, y);
+    y += 24;
+  }
+
+  doc.setDrawColor(203, 213, 225);
+  doc.line(MARGIN, y, PAGE_WIDTH - MARGIN, y);
+  y += 34;
+
+  doc.setFont("helvetica", "bold").setFontSize(12).setTextColor(15, 23, 42);
+  doc.text(letter.jobTitle || "Candidature", MARGIN, y);
+  y += 18;
+
+  doc.setFont("helvetica", "normal").setFontSize(10).setTextColor(71, 85, 105);
+  if (letter.company) {
+    doc.text(letter.company, MARGIN, y);
+    y += 24;
+  }
+
+  doc.setFont("helvetica", "normal").setFontSize(10.5).setTextColor(15, 23, 42);
+  doc.text(lines, MARGIN, y, { lineHeightFactor: 1.45 });
+  doc.save(`${safeFileName(`${title || p.fullName || "candidature"}-lettre-motivation`)}.pdf`);
+}
+
 function renderCV({
   data,
   title,

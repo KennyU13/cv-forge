@@ -51,6 +51,14 @@ export interface CVCertification {
   date: string;
 }
 
+export interface CoverLetterData {
+  company: string;
+  recipient: string;
+  jobTitle: string;
+  jobDescription: string;
+  body: string;
+}
+
 export interface CVData {
   personal: CVPersonalInfo;
   experiences: CVExperience[];
@@ -58,6 +66,7 @@ export interface CVData {
   skills: CVSkill[];
   languages: CVLanguage[];
   certifications: CVCertification[];
+  coverLetter: CoverLetterData;
 }
 
 export const emptyCV = (): CVData => ({
@@ -76,6 +85,13 @@ export const emptyCV = (): CVData => ({
   skills: [],
   languages: [],
   certifications: [],
+  coverLetter: {
+    company: "",
+    recipient: "",
+    jobTitle: "",
+    jobDescription: "",
+    body: "",
+  },
 });
 
 export const sampleCV = (): CVData => ({
@@ -139,4 +155,65 @@ export const sampleCV = (): CVData => ({
     { id: "3", name: "Espagnol", level: "B1" },
   ],
   certifications: [{ id: "1", name: "AWS Certified Developer", issuer: "Amazon", date: "2023-05" }],
+  coverLetter: {
+    company: "Stellar Tech",
+    recipient: "",
+    jobTitle: "Developpeuse Full-Stack Senior",
+    jobDescription:
+      "Developpement React, Node.js, architecture cloud, collaboration produit et encadrement technique.",
+    body: "",
+  },
 });
+
+export function generateCoverLetter(data: CVData) {
+  const p = data.personal;
+  const letter = data.coverLetter;
+  const targetJob = letter.jobTitle || p.jobTitle || "le poste propose";
+  const company = letter.company || "votre entreprise";
+  const greeting = letter.recipient ? `Madame, Monsieur ${letter.recipient},` : "Madame, Monsieur,";
+  const topSkills = data.skills
+    .map((skill) => skill.name)
+    .filter(Boolean)
+    .slice(0, 4);
+  const latestExperience = data.experiences.find(
+    (experience) => experience.position || experience.company,
+  );
+  const experienceLine = latestExperience
+    ? `Mon experience en tant que ${latestExperience.position || p.jobTitle} chez ${
+        latestExperience.company || "mon precedent employeur"
+      } m'a permis de contribuer a des projets concrets avec rigueur, autonomie et sens du resultat.`
+    : "Mon parcours m'a permis de developper une approche structuree, orientee resultat et adaptee aux besoins metier.";
+  const skillsLine = topSkills.length
+    ? `Je peux notamment apporter mes competences en ${topSkills.join(", ")}, ainsi qu'une capacite a apprendre vite et a collaborer efficacement.`
+    : "Je peux apporter une forte capacite d'adaptation, une communication claire et une approche orientee solution.";
+  const motivationLine = letter.jobDescription.trim()
+    ? `Votre offre retient particulierement mon attention car elle correspond aux priorites suivantes : ${summarizeJobDescription(
+        letter.jobDescription,
+      )}.`
+    : "Votre projet retient particulierement mon attention par son exigence professionnelle et les perspectives d'impact qu'il propose.";
+
+  return [
+    greeting,
+    "",
+    `Je vous propose ma candidature pour ${targetJob} au sein de ${company}. ${motivationLine}`,
+    "",
+    `${experienceLine} ${skillsLine}`,
+    "",
+    `Au-dela de mes competences techniques, je souhaite rejoindre une equipe ou la qualite d'execution, la responsabilite et l'amelioration continue sont essentielles. Je serais heureux d'echanger avec vous afin de vous presenter plus concretement ma motivation et la valeur que je peux apporter a ${company}.`,
+    "",
+    "Je vous remercie pour votre attention et vous prie d'agreer, Madame, Monsieur, l'expression de mes salutations distinguees.",
+    "",
+    p.fullName,
+  ].join("\n");
+}
+
+function summarizeJobDescription(value: string) {
+  return value
+    .replace(/\s+/g, " ")
+    .split(/[.!?]/)
+    .map((sentence) => sentence.trim())
+    .filter(Boolean)
+    .slice(0, 2)
+    .join(", ")
+    .slice(0, 220);
+}

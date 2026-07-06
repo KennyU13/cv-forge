@@ -18,9 +18,9 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { CVRenderer, TEMPLATES } from "@/components/cv-templates";
-import { type CVData, emptyCV } from "@/lib/cv-types";
+import { type CVData, emptyCV, generateCoverLetter } from "@/lib/cv-types";
 import { analyzeCV } from "@/lib/ats-engine";
-import { exportCVToPdf } from "@/lib/cv-pdf-export";
+import { exportCoverLetterToPdf, exportCVToPdf } from "@/lib/cv-pdf-export";
 import { toast } from "sonner";
 import {
   ArrowLeft,
@@ -31,6 +31,7 @@ import {
   Loader2,
   Check,
   Eye,
+  Mail,
   Pencil,
 } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -72,7 +73,14 @@ function Builder() {
     initRef.current = true;
     setTitle(cv.title);
     setTemplate(cv.template);
-    setData({ ...emptyCV(), ...(cv.data as unknown as CVData) });
+    const defaults = emptyCV();
+    const savedData = cv.data as unknown as Partial<CVData>;
+    setData({
+      ...defaults,
+      ...savedData,
+      personal: { ...defaults.personal, ...savedData.personal },
+      coverLetter: { ...defaults.coverLetter, ...savedData.coverLetter },
+    });
   }, [cv]);
 
   const atsScore = useMemo(() => analyzeCV(data).globalScore, [data]);
@@ -137,6 +145,20 @@ function Builder() {
     }
   }
 
+  function onExportCoverLetterPdf() {
+    setExportingPdf(true);
+    try {
+      exportCoverLetterToPdf({ data, title });
+      toast.success("PDF exporte", { description: "La lettre de motivation a ete generee." });
+    } catch (error) {
+      toast.error("Export PDF echoue", {
+        description: error instanceof Error ? error.message : "Reessayez dans un instant.",
+      });
+    } finally {
+      setExportingPdf(false);
+    }
+  }
+
   return (
     <div className="min-h-screen bg-background">
       <header className="no-print sticky top-0 z-40 glass">
@@ -190,6 +212,20 @@ function Builder() {
               )}
               <span className="hidden sm:inline">Exporter PDF</span>
             </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              className="shrink-0"
+              onClick={onExportCoverLetterPdf}
+              disabled={exportingPdf}
+            >
+              {exportingPdf ? (
+                <Loader2 className="h-4 w-4 animate-spin sm:mr-1.5" />
+              ) : (
+                <Mail className="h-4 w-4 sm:mr-1.5" />
+              )}
+              <span className="hidden sm:inline">Lettre PDF</span>
+            </Button>
           </div>
         </div>
 
@@ -237,7 +273,7 @@ function Builder() {
             </Card>
 
             <Tabs defaultValue="personal" className="mt-4">
-              <TabsList className="hide-scrollbar flex w-full justify-start overflow-x-auto lg:grid lg:grid-cols-6">
+              <TabsList className="hide-scrollbar flex w-full justify-start overflow-x-auto lg:grid lg:grid-cols-7">
                 <TabsTrigger value="personal" className="shrink-0">
                   Profil
                 </TabsTrigger>
@@ -255,6 +291,9 @@ function Builder() {
                 </TabsTrigger>
                 <TabsTrigger value="cert" className="shrink-0">
                   Certifs
+                </TabsTrigger>
+                <TabsTrigger value="letter" className="shrink-0">
+                  Lettre
                 </TabsTrigger>
               </TabsList>
 
@@ -276,6 +315,9 @@ function Builder() {
               <TabsContent value="cert">
                 <CertificationsForm data={data} update={update} />
               </TabsContent>
+              <TabsContent value="letter">
+                <CoverLetterForm data={data} update={update} />
+              </TabsContent>
             </Tabs>
           </div>
         )}
@@ -283,9 +325,20 @@ function Builder() {
         {/* PREVIEW */}
         {showPreview && (
           <div className="cv-preview-viewport overflow-auto rounded-lg bg-muted/40 p-2 sm:p-4">
-            <div className="cv-preview-page">
-              <CVRenderer template={template} data={data} />
-            </div>
+            <Tabs defaultValue="cv" className="min-w-[210mm]">
+              <TabsList className="no-print mb-3">
+                <TabsTrigger value="cv">CV</TabsTrigger>
+                <TabsTrigger value="letter">Lettre</TabsTrigger>
+              </TabsList>
+              <TabsContent value="cv" className="mt-0">
+                <div className="cv-preview-page">
+                  <CVRenderer template={template} data={data} />
+                </div>
+              </TabsContent>
+              <TabsContent value="letter" className="mt-0">
+                <CoverLetterPreview data={data} title={title} />
+              </TabsContent>
+            </Tabs>
           </div>
         )}
       </div>
@@ -361,6 +414,108 @@ function PersonalForm({ data, update }: FormProps) {
         />
       </Field>
     </Card>
+  );
+}
+
+function CoverLetterForm({ data, update }: FormProps) {
+  const letter = data.coverLetter;
+  const set = (k: keyof typeof letter, v: string) =>
+    update({ coverLetter: { ...letter, [k]: v } });
+  const generate = () => {
+    const nextData = {
+      ...data,
+      coverLetter: {
+        ...letter,
+        body: "",
+      },
+    };
+    update({
+      coverLetter: {
+        ...letter,
+        body: generateCoverLetter(nextData),
+      },
+    });
+    toast.success("Lettre generee", {
+      description: "Vous pouvez maintenant l'ajuster avant de l'exporter.",
+    });
+  };
+
+  return (
+    <Card className="mt-4 space-y-4 p-5">
+      <div className="grid gap-3 md:grid-cols-2">
+        <Field label="Poste vise">
+          <Input
+            value={letter.jobTitle}
+            onChange={(e) => set("jobTitle", e.target.value)}
+            placeholder={data.personal.jobTitle || "Developpeur Full-Stack"}
+          />
+        </Field>
+        <Field label="Entreprise">
+          <Input
+            value={letter.company}
+            onChange={(e) => set("company", e.target.value)}
+            placeholder="Nom de l'entreprise"
+          />
+        </Field>
+        <Field label="Destinataire" className="md:col-span-2">
+          <Input
+            value={letter.recipient}
+            onChange={(e) => set("recipient", e.target.value)}
+            placeholder="Nom du recruteur ou service RH"
+          />
+        </Field>
+      </div>
+      <Field label="Offre d'emploi ou contexte">
+        <Textarea
+          rows={5}
+          value={letter.jobDescription}
+          onChange={(e) => set("jobDescription", e.target.value)}
+          placeholder="Collez l'offre ou les attentes principales du poste pour personnaliser la lettre."
+        />
+      </Field>
+      <div className="flex justify-end">
+        <Button type="button" variant="outline" onClick={generate}>
+          <Mail className="mr-2 h-4 w-4" /> Generer la lettre
+        </Button>
+      </div>
+      <Field label="Lettre de motivation">
+        <Textarea
+          rows={14}
+          value={letter.body}
+          onChange={(e) => set("body", e.target.value)}
+          placeholder="Generez une lettre, puis modifiez-la selon votre ton."
+        />
+      </Field>
+    </Card>
+  );
+}
+
+function CoverLetterPreview({ data, title }: { data: CVData; title: string }) {
+  const p = data.personal;
+  const letter = data.coverLetter;
+  return (
+    <div className="print-page mx-auto min-h-[297mm] w-[210mm] bg-white p-[18mm] font-sans text-secondary shadow-card">
+      <header className="border-b border-secondary/20 pb-5">
+        <h1 className="font-display text-3xl font-bold tracking-tight">
+          {p.fullName || title || "Votre nom"}
+        </h1>
+        <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-muted-foreground">
+          {p.email && <span>{p.email}</span>}
+          {p.phone && <span>{p.phone}</span>}
+          {p.location && <span>{p.location}</span>}
+          {p.linkedin && <span>{p.linkedin}</span>}
+        </div>
+      </header>
+      <main className="pt-8 text-[12px] leading-7">
+        <div className="mb-8">
+          <div className="font-semibold">{letter.jobTitle || "Candidature"}</div>
+          {letter.company && <div className="text-muted-foreground">{letter.company}</div>}
+        </div>
+        <div className="whitespace-pre-line">
+          {letter.body || "Votre lettre de motivation apparaitra ici apres generation."}
+        </div>
+      </main>
+    </div>
   );
 }
 
